@@ -1,0 +1,12 @@
+# Claves privadas: NUNCA subir
+.env
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+
+# Lo que generan los agentes
+workspace/
