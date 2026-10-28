@@ -1,121 +1,137 @@
 # 🤖 Granja de Agentes
 
-Un orquestador que recibe tu pedido, lo divide y lo reparte entre agentes especializados.
-Funciona con **IA local gratis (Ollama)** o con APIs en la nube (Groq, DeepSeek, OpenRouter, Claude).
+Un equipo de agentes de IA que programa, prueba, investiga en internet, busca artículos científicos reales,
+enseña y redacta. Un **orquestador** conversa contigo y reparte el trabajo.
 
 ```
-          Tú
-          │
-     Orquestador ──── divide y delega
-     │   │   │   │   │
-  prog test rev doc auto
-          │
-      workspace/   ← único lugar donde pueden leer, escribir y ejecutar
+                     Tú
+                     │
+                Orquestador ── conversa, decide y delega
+   ┌───────┬───────┬─┴──────┬─────────┬────────┬───────┐
+programador tester revisor investigador tutor  asesor  redactor ...
+   │                          │           │       │
+workspace/              internet + OpenAlex   memoria/
 ```
 
 ## 1. Instalación
 
 ```bash
+git clone https://github.com/julian-parada/granja-agentes
 cd granja-agentes
-python -m venv .venv
-.venv\Scripts\activate          # Windows
-pip install -r requirements.txt
-copy .env.example .env
+py -m pip install -r requirements.txt
+py -m pip install ddgs          # opcional: mejores búsquedas web
+copy .env.example .env          # y pon tu key
 ```
 
-## 2. Elegir proveedor
+Key gratis de Groq: **console.groq.com → API Keys**.
 
-| Proveedor | Costo | Dónde sacar la key |
-|---|---|---|
-| `ollama` | Gratis, en tu PC | No necesita key |
-| `groq` | Gratis con límite diario | console.groq.com |
-| `openrouter` | Modelos gratis con límite | openrouter.ai |
-| `deepseek` | Pago, muy barato | platform.deepseek.com |
-| `anthropic` | Pago, el más capaz | console.anthropic.com |
-
-Se configura en `.env` con `PROVEEDOR_ORQUESTADOR` y `PROVEEDOR_AGENTES`.
-Cada agente también puede tener su propio proveedor en `agents.py`.
-
-## 3. Ollama (IA local gratis)
-
-1. Descarga e instala desde **ollama.com**.
-2. Sube el contexto (por defecto es 4096 y se queda corto para agentes). En PowerShell:
-   ```powershell
-   setx OLLAMA_CONTEXT_LENGTH 16384
-   ```
-   Cierra Ollama desde la bandeja del sistema y vuelve a abrirlo.
-3. Descarga un modelo:
-   ```bash
-   ollama pull qwen3.5:9b      # el mejor que aguanta tu PC (lento)
-   ollama pull granite4:3b     # rápido, bueno llamando herramientas
-   ```
-4. En `.env`: `PROVEEDOR_AGENTES=ollama` y `MODELO_AGENTES=qwen3.5:9b` (o `granite4:3b`).
-
-**Con 16 GB de RAM y sin GPU dedicada:** deja `MAX_PARALELO=1` y cierra el navegador mientras trabaja.
-
-## 4. Combinación recomendada
-
-```env
-PROVEEDOR_ORQUESTADOR=groq     # piensa y divide rápido, gratis
-GROQ_API_KEY=gsk_...
-PROVEEDOR_AGENTES=ollama       # el trabajo pesado en local, ilimitado
-MODELO_AGENTES=qwen3.5:9b
-MAX_PARALELO=1
-```
-
-## 5. Uso
+## 2. Uso
 
 | Comando | Qué hace |
 |---|---|
-| `python main.py` | Modo chat con el orquestador |
-| `python main.py "crea un script que organice mis descargas"` | Una orden directa |
-| `python main.py --agente revisor "revisa todo el proyecto"` | Hablar con un solo agente |
-| `python main.py --lista` | Ver agentes |
+| `py main.py` | Chat con el orquestador (recuerda la conversación) |
+| `py main.py "investiga X"` | Una sola orden |
+| `py main.py --agente tutor` | Chat directo con un agente (ideal para estudiar) |
+| `py main.py --agente asesor "temas de tesis sobre IA en educación"` | Orden directa a un agente |
+| `py main.py --lista` | Ver agentes |
 
-**Para trabajar sobre un proyecto tuyo:** cambia `WORKSPACE` en `.env` a la ruta del proyecto. Haz commit en Git antes, por si algo sale mal.
+Dentro del chat: `/nuevo` (reinicia la conversación) · `/agentes` · `/memoria` · `/salir`
 
-## 6. Agentes incluidos
+## 3. Agentes
 
-| Agente | Rol | Ejecuta comandos |
+| Agente | Para qué | Herramientas |
 |---|---|---|
-| programador | Escribe y modifica código | ✅ |
-| tester | Escribe y corre pruebas | ✅ |
-| revisor | Busca bugs y fallas de seguridad | ❌ solo lee |
-| documentador | README y documentación | ❌ |
-| automatizador | Scripts para tareas repetitivas | ✅ |
+| **programador** | Escribe código y lo ejecuta para verificarlo | archivos, terminal |
+| **tester** | Escribe y corre pruebas | archivos, terminal |
+| **revisor** | Encuentra bugs y fallas de seguridad (solo lee) | leer archivos |
+| **automatizador** | Scripts para tareas repetitivas | archivos, terminal |
+| **documentador** | README y manuales | archivos |
+| **investigador** | Investiga cualquier tema, contrasta fuentes y cita | web, artículos, memoria |
+| **tutor** | Explica, adapta el nivel, hace quizzes y planes de estudio | web, memoria, archivos |
+| **asesor** | Recomienda temas de investigación con artículos reales | artículos, web, memoria |
+| **redactor** | Informes, ensayos y resúmenes con citas APA | archivos, web |
 
-## 7. Crear un agente nuevo
+## 4. Ejemplos
 
-En `agents.py` agrega un bloque:
+```bash
+# Investigación
+py main.py "investiga el estado de la inteligencia artificial en la educación en Colombia y hazme un informe"
 
-```python
-"diseñador": {
-    "descripcion": "Crea interfaces HTML/CSS bonitas y responsive.",
-    "herramientas": ["leer_archivo", "escribir_archivo", "listar_archivos"],
-    "proveedor": "groq",                     # opcional
-    "modelo": "openai/gpt-oss-120b",     # opcional
-    "prompt": "Eres diseñador frontend...",
-},
+# Recomendaciones de investigación
+py main.py --agente asesor "soy estudiante de ingeniería de sistemas, recomiéndame temas de tesis sobre ciberseguridad"
+
+# Estudio (modo chat)
+py main.py --agente tutor
+Tú > explícame subnetting desde cero, voy para el examen de CCNA
+
+# Programación con revisión
+py main.py "crea una API en Python para tareas, con pruebas, y que el revisor la revise"
 ```
 
-El orquestador lo detecta solo.
+Los resultados quedan en `workspace/` (`investigaciones/`, `estudio/`, `documentos/`).
 
-## 8. Crear una herramienta nueva
+## 5. Herramientas
 
-En `tools.py`: escribe la función, regístrala en `HERRAMIENTAS` y agrégala a los agentes que la usen. Ideas: consultar MySQL, llamar tu API de Laravel, mandar mensajes por Telegram.
+| Herramienta | Qué hace |
+|---|---|
+| `buscar_web` | Busca en internet (DuckDuckGo → respaldo Wikipedia). Soporta noticias |
+| `leer_web` | Lee el texto de cualquier página |
+| `buscar_articulos` | Artículos científicos **reales** (OpenAlex): autores, año, DOI, citas, resumen |
+| `guardar_nota` / `buscar_notas` | Memoria permanente entre sesiones (`memoria/notas.json`) |
+| `fecha_actual` | Para que sepa qué es "hoy" o "reciente" |
+| `leer_archivo` / `escribir_archivo` / `listar_archivos` | Archivos dentro de `workspace/` |
+| `ejecutar_comando` | Terminal dentro de `workspace/` (con confirmación) |
 
-## 9. Seguridad
+## 6. Robustez incluida
 
-- Los agentes **no pueden salir** de la carpeta `WORKSPACE`.
-- Comandos peligrosos (`rm -rf`, `format`, `shutdown`...) están bloqueados.
-- Con `CONFIRMAR_COMANDOS=true` te pide permiso antes de cada comando.
+- **Reintentos automáticos** ante límites del plan gratis (429), servidor caído o tool calls mal formadas.
+- **Anti-trampa**: si un agente responde sin usar herramientas, se le obliga a hacerlo de verdad.
+- **Anti-invención**: todos los agentes tienen prohibido inventar datos, citas o referencias.
+- **Contexto controlado**: recorta resultados viejos para no pasarse del límite del modelo.
+- **Resumen parcial** si se acaban los pasos, en vez de quedarse sin respuesta.
+- **Errores entendibles** (key inválida, modelo inexistente, sin conexión...).
+- **Registro** de todo lo que hacen en `logs/AAAA-MM-DD.log`.
 
-## 10. Problemas comunes
+## 7. Proveedores
+
+| Proveedor | Costo | Notas |
+|---|---|---|
+| `groq` ⭐ | Gratis con límite diario | Rápido; recomendado |
+| `ollama` | Gratis, local | Lento en CPU; pon `MAX_PARALELO=1` |
+| `openrouter` | Modelos gratis con límite | Elige modelo en openrouter.ai |
+| `deepseek` | Pago, barato | |
+| `anthropic` | Pago | El más capaz |
+
+Cada agente puede tener su propio proveedor/modelo en `agents.py`.
+
+## 8. Crear agentes y herramientas
+
+**Agente nuevo** → agrega un bloque en `agents.py` (el orquestador lo detecta solo).
+**Herramienta nueva** → función en `tools.py` + registro en `HERRAMIENTAS` + agrégala al agente.
+
+## 9. Pruebas
+
+```bash
+py -m pip install pytest
+py -m pytest -q
+```
+
+Usan un modelo simulado (no gastan API). También corren solas en GitHub (Actions) en cada push.
+
+## 10. Seguridad
+
+- Los agentes no pueden salir de `workspace/`.
+- Comandos peligrosos bloqueados (`rm -rf`, `format`, `Remove-Item -Recurse`, `shutdown`...).
+- `CONFIRMAR_COMANDOS=true` pide permiso antes de cada comando.
+- `.env`, `memoria/` y `logs/` nunca se suben a GitHub.
+
+## 11. Problemas comunes
 
 | Síntoma | Solución |
 |---|---|
-| `Connection refused` con Ollama | Abre la app de Ollama o corre `ollama serve` |
-| El agente repite lo mismo o no usa herramientas | Modelo muy pequeño: prueba `qwen3.5:9b` o pon el orquestador en Groq |
-| Se olvida de lo que hacía | Sube `OLLAMA_CONTEXT_LENGTH` (paso 3) |
-| Muy lento | Normal en CPU. Usa `granite4:3b` o Groq |
-| `429 Too Many Requests` | Llegaste al límite gratis del proveedor; espera o cambia a Ollama |
+| `API key inválida` | Revisa `GROQ_API_KEY` en `.env` |
+| `El modelo no existe` | Deja `MODELO_*` vacío para usar el de por defecto |
+| `Llegaste al límite` | Plan gratis agotado: espera o cambia de proveedor |
+| Búsquedas web pobres | `py -m pip install ddgs` |
+| `Connection refused` con Ollama | Abre Ollama o corre `ollama serve` |
+| `python` abre la Microsoft Store | Usa `py` en vez de `python` |

@@ -10,3 +10,7 @@ venv/
 
 # Lo que generan los agentes
 workspace/
+
+# Memoria y registros personales
+memoria/
+logs/

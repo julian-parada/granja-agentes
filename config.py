@@ -4,7 +4,8 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-load_dotenv()
+RAIZ = Path(__file__).parent.resolve()
+load_dotenv(RAIZ / ".env")
 
 # ---------- Proveedores ----------
 # anthropic usa su propio SDK; el resto usa el formato OpenAI (mismo código, distinta URL)
@@ -16,22 +17,28 @@ PROVEEDORES = {
     "openrouter": {"base_url": "https://openrouter.ai/api/v1",   "key_env": "OPENROUTER_API_KEY", "modelo": ""},  # elige uno en openrouter.ai/models?q=free
 }
 
-PROVEEDOR_ORQUESTADOR = os.getenv("PROVEEDOR_ORQUESTADOR", "ollama")
-PROVEEDOR_AGENTES = os.getenv("PROVEEDOR_AGENTES", "ollama")
+PROVEEDOR_ORQUESTADOR = os.getenv("PROVEEDOR_ORQUESTADOR", "groq")
+PROVEEDOR_AGENTES = os.getenv("PROVEEDOR_AGENTES", "groq")
 
 # Vacío = el modelo por defecto del proveedor
 MODELO_ORQUESTADOR = os.getenv("MODELO_ORQUESTADOR", "")
 MODELO_AGENTES = os.getenv("MODELO_AGENTES", "")
 
-# ---------- Workspace ----------
-# Carpeta donde los agentes pueden leer/escribir/ejecutar. No salen de aquí.
-WORKSPACE = Path(os.getenv("WORKSPACE", "./workspace")).resolve()
+# ---------- Carpetas ----------
+# Workspace: único lugar donde los agentes leen/escriben/ejecutan
+WORKSPACE = Path(os.getenv("WORKSPACE", RAIZ / "workspace")).resolve()
 WORKSPACE.mkdir(parents=True, exist_ok=True)
+# Memoria: notas que sobreviven entre sesiones
+MEMORIA_DIR = Path(os.getenv("MEMORIA_DIR", RAIZ / "memoria")).resolve()
+# Logs: registro de todo lo que hacen los agentes
+LOGS_DIR = Path(os.getenv("LOGS_DIR", RAIZ / "logs")).resolve()
 
 # ---------- Límites ----------
-MAX_PASOS = int(os.getenv("MAX_PASOS", "20"))          # vueltas máximas por agente
-MAX_PARALELO = int(os.getenv("MAX_PARALELO", "1"))     # agentes a la vez (1 si usas Ollama en un portátil)
-MAX_TOKENS = int(os.getenv("MAX_TOKENS", "4000"))
+MAX_PASOS = int(os.getenv("MAX_PASOS", "25"))          # vueltas máximas por agente
+MAX_PARALELO = int(os.getenv("MAX_PARALELO", "2"))     # agentes a la vez (1 si usas Ollama en un portátil)
+MAX_TOKENS = int(os.getenv("MAX_TOKENS", "4000"))      # tokens máximos por respuesta
+REINTENTOS = int(os.getenv("REINTENTOS", "4"))         # reintentos ante errores temporales (429, 5xx...)
+MAX_HISTORIAL = int(os.getenv("MAX_HISTORIAL", "10"))  # turnos de conversación que recuerda el chat
 
 # Si es true, te pregunta antes de ejecutar cada comando en la terminal
 CONFIRMAR_COMANDOS = os.getenv("CONFIRMAR_COMANDOS", "true").lower() == "true"
